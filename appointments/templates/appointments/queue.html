@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Live Waiting Room</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-dark text-white d-flex align-items-center justify-content-center vh-100">
+    <div class="text-center">
+        <h1 class="display-4 mb-4">Clinic Waiting Room</h1>
+        <div class="card bg-primary text-white shadow-lg p-5" style="border-radius: 20px;">
+            <h2 class="mb-3">Now Serving Token</h2>
+            <h1 class="display-1 fw-bold m-0" id="live-token">--</h1>
+        </div>
+        <p class="mt-4 text-muted">Screen updates automatically every 5 seconds.</p>
+    </div>
+    <script>
+        const doctorId = 1; 
+        function fetchLiveToken() {
+            fetch(`/appointments/api/queue/${doctorId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('live-token').innerText = data.current_token;
+                })
+                .catch(error => console.error('Error fetching token:', error));
+        }
+        fetchLiveToken();
+        setInterval(fetchLiveToken, 5000);
+    </script>
+</body>
+</html>

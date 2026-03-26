@@ -1,0 +1,121 @@
+{% extends 'appointments/base.html' %}
+
+{% block title %}Clinic Administration View{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-end mb-4">
+    <div>
+        <h2 class="fw-bold text-dark mb-0"><i class="bi bi-graph-up-arrow text-primary me-2"></i>Administration Dashboard</h2>
+        <p class="text-muted mb-0">System Analytics & Live Operations &middot; {{ today }}</p>
+    </div>
+    <a href="{% url 'download_report' %}" class="btn btn-success shadow-sm"><i class="bi bi-file-earmark-excel me-2"></i>Export CSV Report</a>
+</div>
+
+
+<div class="row mb-5">
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 border-start border-primary border-4 h-100">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase fw-bold mb-1">Today's Total Load</h6>
+                <h1 class="display-5 fw-bold text-primary mb-0">{{ todays_total }}</h1>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 border-start border-success border-4 h-100">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase fw-bold mb-1">Completed Appointments</h6>
+                <h1 class="display-5 fw-bold text-success mb-0">{{ todays_completed }}</h1>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm border-0 border-start border-warning border-4 h-100">
+            <div class="card-body">
+                <h6 class="text-muted text-uppercase fw-bold mb-1">System Status</h6>
+                <h1 class="display-5 fw-bold text-warning mb-0">Live</h1>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-5 mb-4">
+        <h4 class="fw-bold text-dark mb-3"><i class="bi bi-person-lines-fill text-primary me-2"></i>Doctor Performance</h4>
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-0">
+                <table class="table table-hover m-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Doctor Name</th>
+                            <th class="text-center">Today</th>
+                            <th class="text-center pe-4">All-Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in doctor_stats %}
+                        <tr>
+                            <td class="ps-4 fw-bold">Dr. {{ stat.name }} <br><small class="text-muted fw-normal">{{ stat.specialization }}</small></td>
+                            <td class="text-center"><span class="badge bg-primary rounded-pill">{{ stat.today_appointments }}</span></td>
+                            <td class="text-center pe-4"><span class="badge bg-secondary rounded-pill">{{ stat.total_appointments }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <h4 class="fw-bold text-dark mb-3"><i class="bi bi-view-list text-primary me-2"></i>Master Live Queue</h4>
+        
+        {% regroup master_queue by appointment.doctor as doctor_queues %}
+        
+        <div class="accordion shadow-sm border-0" id="queueAccordion">
+            {% for doctor in doctor_queues %}
+            <div class="accordion-item border-0 border-bottom">
+                <h2 class="accordion-header" id="heading{{ doctor.grouper.id }}">
+                    <button class="accordion-button {% if not forloop.first %}collapsed{% endif %} fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ doctor.grouper.id }}">
+                        Dr. {{ doctor.grouper.name }}'s Waiting Room ({{ doctor.list|length }} Patients)
+                    </button>
+                </h2>
+                <div id="collapse{{ doctor.grouper.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#queueAccordion">
+                    <div class="accordion-body p-0">
+                        <table class="table table-sm m-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Token</th>
+                                    <th>Patient</th>
+                                    <th>Time</th>
+                                    <th class="text-end pe-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in doctor.list %}
+                                <tr class="{% if item.is_served %}opacity-50 bg-light{% endif %}">
+                                    <td class="ps-4 fw-bold text-primary">#{{ item.token_number }}</td>
+                                    <td>{{ item.appointment.patient.username|title }}</td>
+                                    <td class="text-muted"><small>{{ item.appointment.appointment_time }}</small></td>
+                                    <td class="text-end pe-4">
+                                        <span class="badge rounded-pill {% if item.appointment.status == 'Completed' %}bg-success{% elif item.appointment.status == 'Cancelled' %}bg-danger{% else %}bg-primary{% endif %}">
+                                            {{ item.appointment.status }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="p-5 text-center bg-white rounded">
+                <i class="bi bi-check2-circle fs-1 text-success opacity-50 mb-2 d-block"></i>
+                <h5 class="text-muted m-0">No active queues for today.</h5>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

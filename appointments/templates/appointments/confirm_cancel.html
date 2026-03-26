@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cancel Appointment</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light d-flex align-items-center justify-content-center vh-100">
+    <div class="card shadow-sm p-4 text-center" style="max-width: 400px;">
+        <h3 class="text-danger mb-3">Cancel Appointment</h3>
+        <p>Are you sure you want to cancel your appointment with <br><strong>Dr. {{ appointment.doctor.name }}</strong> on <strong>{{ appointment.appointment_date }}</strong>?</p>
+        
+        <form method="POST">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger w-100 mb-2">Yes, Cancel Appointment</button>
+            <a href="javascript:history.back()" class="btn btn-outline-secondary w-100">No, Keep It</a>
+        </form>
+    </div>
+</body>
+</html>
