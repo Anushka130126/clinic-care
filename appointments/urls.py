@@ -4,7 +4,6 @@ from django.urls import reverse_lazy
 from django.views.generic import RedirectView
 
 urlpatterns = [
-    urlpatterns = [
     path('', RedirectView.as_view(url=reverse_lazy('login')), name='home'),
     
     # Dashboards
