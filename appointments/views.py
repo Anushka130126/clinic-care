@@ -12,6 +12,24 @@ import csv
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 
+@login_required
+def login_success_router(request):
+    """Invisible router that sends users to their correct dashboard after login"""
+    # 1. If it's an Admin
+    if request.user.is_superuser or request.user.is_staff:
+        return redirect('/clinic-hq-vault-88/')
+        
+    # 2. If it's a Doctor
+    elif hasattr(request.user, 'doctor'):
+        return redirect('doctor_dashboard')
+        
+    # 3. If it's a Patient
+    elif hasattr(request.user, 'patient'):
+        return redirect('patient_dashboard')
+        
+    # Fallback just in case
+    return redirect('home')
+
 def register_patient(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)

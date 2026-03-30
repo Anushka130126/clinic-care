@@ -14,6 +14,7 @@ urlpatterns = [
     path('reports/download/', views.download_report, name='download_report'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('reports/logs/export/', views.export_lifetime_logs, name='export_lifetime_logs'),
+    path('route/', views.login_success_router, name='login_router'),
     
     # Booking Flow
     path('book/', views.book_appointment, name='book_appointment'),

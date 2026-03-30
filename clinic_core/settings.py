@@ -114,3 +114,6 @@ AXES_FAILURE_LIMIT = 5  # Lock the user out after 5 wrong password attempts
 AXES_COOLOFF_TIME = 1   # Keep them locked out for 1 hour
 AXES_RESET_ON_SUCCESS = True  # Reset the counter if they log in successfully
 AXES_LOCKOUT_TEMPLATE = 'appointments/lockout.html' # The page they see when banned
+# Routing rules for successful logins and logouts
+LOGIN_REDIRECT_URL = 'login_router'
+LOGOUT_REDIRECT_URL = 'home'
