@@ -1,9 +1,12 @@
 from django.urls import path
 from . import views
+from django.urls import reverse_lazy
 from django.views.generic import RedirectView
 
 urlpatterns = [
-    path('', RedirectView.as_view(url='/accounts/login/'), name='home'),
+    urlpatterns = [
+    path('', RedirectView.as_view(url=reverse_lazy('login')), name='home'),
+    
     # Dashboards
     path('dashboard/', views.patient_dashboard, name='patient_dashboard'),
     path('doctor-dashboard/', views.doctor_dashboard, name='doctor_dashboard'),
