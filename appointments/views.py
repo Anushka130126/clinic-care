@@ -71,23 +71,39 @@ def doctor_dashboard(request):
         'today': today
     })
 
+
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib import messages
+
 @login_required
-def cancel_appointment(request, appointment_id):
-    """Handles the Cancellation Module."""
-    appointment = get_object_or_404(Appointment, id=appointment_id, patient=request.user)
+def cancel_appointment(request, pk):
+    """Allows either the Patient or the Doctor to cancel the appointment"""
+    # Grab the appointment (without filtering by user yet)
+    appointment = get_object_or_404(Appointment, pk=pk)
     
-    if request.method == 'POST':
+    # Check roles: Is the user the patient who booked it, OR the assigned doctor?
+    is_patient = hasattr(request.user, 'patient') and appointment.patient == request.user.patient
+    is_doctor = hasattr(request.user, 'doctor') and appointment.doctor == request.user.doctor
+    
+    if is_patient or is_doctor:
         appointment.status = 'Cancelled'
         appointment.save()
         
-        # Trigger Mock Notification
-        send_mock_notification(request.user, "APPOINTMENT_CANCELLED", {
-            'doctor': appointment.doctor.name,
-            'date': appointment.appointment_date
-        })
-        return redirect('patient_dashboard')
+        # If the appointment has a live queue token, mark it as served so it leaves the queue
+        if hasattr(appointment, 'token'):
+            appointment.token.is_served = True
+            appointment.token.save()
+            
+        messages.success(request, "Appointment successfully cancelled.")
+    else:
+        # Security trigger if a random user tries to cancel someone else's booking
+        messages.error(request, "Security Exception: You do not have permission to modify this record.")
         
-    return render(request, 'appointments/confirm_cancel.html', {'appointment': appointment})
+    # Smart routing: send them back to their respective dashboards
+    if hasattr(request.user, 'doctor'):
+        return redirect('doctor_dashboard')
+    return redirect('patient_dashboard')
+
 
 @login_required
 def reschedule_appointment(request, appointment_id):
