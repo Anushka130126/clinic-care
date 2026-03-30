@@ -27,7 +27,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'appointments',  # Your custom clinic app
+    'appointments',
+    'axes',
 ]
 
 MIDDLEWARE = [
@@ -39,6 +40,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'axes.middleware.AxesMiddleware',
 ]
 
 ROOT_URLCONF = 'clinic_core.urls'
@@ -79,8 +81,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
-USE_I18N = True
+
+TIME_ZONE = 'Asia/Kolkata'
 USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
@@ -99,3 +101,16 @@ LOGOUT_REDIRECT_URL = '/accounts/login/'
 # Intercepts outgoing emails and saves them as text files in the project folder
 EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
 EMAIL_FILE_PATH = BASE_DIR / "mock_emails"
+
+# ==========================================
+# SECURITY: DJANGO-AXES RATE LIMITING
+# ==========================================
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+AXES_FAILURE_LIMIT = 5  # Lock the user out after 5 wrong password attempts
+AXES_COOLOFF_TIME = 1   # Keep them locked out for 1 hour
+AXES_RESET_ON_SUCCESS = True  # Reset the counter if they log in successfully
+AXES_LOCKOUT_TEMPLATE = 'appointments/lockout.html' # The page they see when banned

@@ -13,6 +13,7 @@ urlpatterns = [
     path('reports/logs/', views.all_time_logs, name='all_time_logs'),
     path('reports/download/', views.download_report, name='download_report'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
+    path('reports/logs/export/', views.export_lifetime_logs, name='export_lifetime_logs'),
     
     # Booking Flow
     path('book/', views.book_appointment, name='book_appointment'),
@@ -24,5 +25,5 @@ urlpatterns = [
     path('register/', views.register_patient, name='register'),
 
     path('token/<int:token_id>/serve/', views.mark_served, name='mark_served'),
-
+    
 ]

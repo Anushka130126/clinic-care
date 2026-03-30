@@ -42,7 +42,9 @@
                     </form>
                     <div class="btn-group w-100 shadow-sm">
                         <a href="{% url 'reschedule_appointment' item.appointment.id %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calendar-event me-1"></i>Reschedule</a>
-                        <a href="{% url 'cancel_appointment' item.appointment.id %}" class="btn btn-outline-danger btn-sm"><i class="bi bi-x-circle me-1"></i>Cancel</a>
+                        <a href="{% url 'cancel_appointment' appointment.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to cancel this appointment? This cannot be undone.');">
+    Cancel
+</a>
                     </div>
                 </div>
                 {% endif %}
@@ -93,7 +95,8 @@
                             {% if appt.status == 'Scheduled' %}
                             <div class="btn-group shadow-sm">
                                 <a href="{% url 'reschedule_appointment' appt.id %}" class="btn btn-sm btn-outline-secondary" title="Reschedule"><i class="bi bi-calendar-event"></i></a>
-                                <a href="{% url 'cancel_appointment' appt.id %}" class="btn btn-sm btn-outline-danger" title="Cancel"><i class="bi bi-x-circle"></i></a>
+				<a href="{% url 'cancel_appointment' appointment.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to cancel this appointment? This cannot be undone.');">Cancel
+				</a>
                             </div>
                             {% else %}
                             <span class="text-muted small">No actions available</span>

@@ -10,6 +10,7 @@ from datetime import datetime, date
 from .forms import UserUpdateForm, ProfileUpdateForm
 import csv
 from django.http import HttpResponse
+from django.http import HttpResponseRedirect
 
 def register_patient(request):
     if request.method == 'POST':
@@ -95,15 +96,11 @@ def cancel_appointment(request, pk):
             appointment.token.save()
             
         messages.success(request, "Appointment successfully cancelled.")
+        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
     else:
         # Security trigger if a random user tries to cancel someone else's booking
         messages.error(request, "Security Exception: You do not have permission to modify this record.")
         
-    # Smart routing: send them back to their respective dashboards
-    if hasattr(request.user, 'doctor'):
-        return redirect('doctor_dashboard')
-    return redirect('patient_dashboard')
-
 
 @login_required
 def reschedule_appointment(request, appointment_id):
@@ -208,7 +205,7 @@ def clinic_reports(request):
         today_appointments=Count('appointment', filter=Q(appointment__appointment_date=today))
     )
     
-    # --- NEW: Fetch the Master Queue for all doctors today ---
+    # --- Fetch the Master Queue for all doctors today ---
     master_queue = Token.objects.filter(
         appointment__appointment_date=today
     ).select_related('appointment', 'appointment__doctor', 'appointment__patient').order_by('appointment__doctor__name', 'token_number')
@@ -230,10 +227,6 @@ def api_current_token(request, doctor_id):
     ).aggregate(Max('token_number'))['token_number__max']
     
     return JsonResponse({'status': 'success', 'current_token': last_served_token or 0})
-
-
-
-
 
 @login_required
 def edit_profile(request):
@@ -308,3 +301,30 @@ def all_time_logs(request):
     logs = Appointment.objects.all().order_by('-appointment_date', '-appointment_time')
     
     return render(request, 'appointments/all_logs.html', {'logs': logs})
+
+
+@login_required
+def export_lifetime_logs(request):
+    """Generates a CSV of every appointment in the system"""
+    if not (request.user.is_staff or request.user.is_superuser):
+        return redirect('patient_dashboard')
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="ClinicCare_Lifetime_Logs.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Date', 'Time', 'Patient Name', 'Doctor', 'Status'])
+    
+    # Fetch all logs, newest first
+    logs = Appointment.objects.all().order_by('-appointment_date', '-appointment_time')
+    
+    for log in logs:
+        writer.writerow([
+            log.appointment_date, 
+            log.appointment_time, 
+            log.patient.username, 
+            log.doctor.name, 
+            log.status
+        ])
+        
+    return response

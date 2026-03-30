@@ -14,8 +14,11 @@
                 <h5 class="mb-0">Your Token Number</h5>
                 <h1 class="display-1 fw-bold">{{ token_number }}</h1>
             </div>
-            <a href="/appointments/book/" class="btn btn-outline-primary w-100">Book Another Appointment</a>
+	    <a href="{% url 'book' %}" class="btn btn-primary">Book Another Appointment</a>
+	    <a href="{% url 'patient_dashboard' %}" class="btn btn-outline-secondary">Back to Dashboard</a>
         </div>
     </div>
 </body>
 </html>
+
+
