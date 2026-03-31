@@ -24,7 +24,5 @@ urlpatterns = [
     # API & Auth
     path('api/queue/<int:doctor_id>/', views.api_current_token, name='api_queue'),
     path('register/', views.register_patient, name='register'),
-
     path('token/<int:token_id>/serve/', views.mark_served, name='mark_served'),
-    
 ]

@@ -17,7 +17,7 @@ class PatientProfile(models.Model):
         return f"{self.user.username}'s Profile"
 
 class Doctor(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True) # Enables Doctor Login
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100)
     specialization = models.CharField(max_length=50)
     
