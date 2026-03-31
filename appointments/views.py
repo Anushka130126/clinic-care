@@ -11,24 +11,40 @@ from .forms import UserUpdateForm, ProfileUpdateForm
 import csv
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
+from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth import logout
+from django.contrib import messages
 
 @login_required
 def login_success_router(request):
-    """Invisible router that sends users to their correct dashboard after login"""
-    # 1. If it's an Admin
-    if request.user.is_superuser or request.user.is_staff:
-        return redirect('/clinic-hq-vault-88/')
-        
-    # 2. If it's a Doctor
-    elif hasattr(request.user, 'doctor'):
-        return redirect('doctor_dashboard')
-        
-    # 3. If it's a Patient
-    elif hasattr(request.user, 'patient'):
-        return redirect('patient_dashboard')
-        
-    # Fallback just in case
-    return redirect('home')
+    """Bulletproof router to safely navigate users and prevent redirect loops"""
+    user = request.user
+
+    # 1. Admin/Staff -> Send to Custom Analytics Dashboard (NOT the vault!)
+    if user.is_superuser or user.is_staff:
+        return redirect('clinic_reports')
+
+    # 2. Safe Doctor Check
+    try:
+        # We explicitly try to access the doctor profile
+        if user.doctor:
+            return redirect('doctor_dashboard')
+    except ObjectDoesNotExist:
+        pass  # If they aren't a doctor, safely ignore and move on
+
+    # 3. Safe Patient Check
+    try:
+        if user.patient:
+            return redirect('patient_dashboard')
+    except ObjectDoesNotExist:
+        pass
+
+    # 4. The Loop Breaker (If they reach here, something is wrong with their account)
+    # They are logged in, but the database didn't link them to a Doctor OR Patient profile.
+    # We MUST log them out and show an error, otherwise the server goes into an infinite loop!
+    logout(request)
+    messages.error(request, "System Error: Your account is not linked to a patient or doctor profile. Please contact the clinic.")
+    return redirect('login')
 
 def register_patient(request):
     if request.method == 'POST':
