@@ -11,12 +11,12 @@
                 <hr>
                 <p class="mb-2"><i class="bi bi-envelope text-muted me-2"></i> <strong>Email:</strong><br> {{ user.email|default:"Not Provided" }}</p>
                 <p class="mb-2"><i class="bi bi-telephone text-muted me-2"></i> <strong>Phone:</strong><br> {{ profile.phone_number|default:"Not Provided" }}</p>
-                
+
                 <h6 class="mt-4 fw-bold"><i class="bi bi-clipboard2-pulse text-muted me-2"></i>Medical History</h6>
                 <div class="p-3 bg-light rounded text-muted small border">
                     {{ profile.medical_history }}
                 </div>
-                
+
                 <a href="{% url 'edit_profile' %}" class="btn btn-outline-primary btn-sm w-100 mt-4"><i class="bi bi-pencil-square me-2"></i>Edit Profile</a>
             </div>
         </div>
@@ -35,54 +35,54 @@
                 <div class="table-responsive">
                     <table class="table table-hover m-0 align-middle">
                         <thead class="table-light">
-                            <tr>
-                                <th class="ps-4">Date & Time</th>
-                                <th>Doctor</th>
-                                <th class="text-center">Token</th>
-                                <th>Status</th>
-                                <th class="text-end pe-4">Actions</th>
-                            </tr>
+                        <tr>
+                            <th class="ps-4">Date & Time</th>
+                            <th>Doctor</th>
+                            <th class="text-center">Token</th>
+                            <th>Status</th>
+                            <th class="text-end pe-4">Actions</th>
+                        </tr>
                         </thead>
                         <tbody>
-                            {% for appt in appointments %}
-                            <tr>
-                                <td class="ps-4">
-                                    <div class="fw-bold text-dark">{{ appt.appointment_date }}</div>
-                                    <small class="text-muted"><i class="bi bi-clock me-1"></i>{{ appt.appointment_time }}</small>
-                                </td>
-                                <td>
-                                    <div class="fw-bold">Dr. {{ appt.doctor.name }}</div>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-dark fs-6 rounded-pill px-3">#{{ appt.token.token_number }}</span>
-                                </td>
-                                <td>
+                        {% for appt in appointments %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-bold text-dark">{{ appt.appointment_date }}</div>
+                                <small class="text-muted"><i class="bi bi-clock me-1"></i>{{ appt.appointment_time }}</small>
+                            </td>
+                            <td>
+                                <div class="fw-bold">Dr. {{ appt.doctor.name }}</div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-dark fs-6 rounded-pill px-3">#{{ appt.token.token_number }}</span>
+                            </td>
+                            <td>
                                     <span class="badge rounded-pill {% if appt.status == 'Scheduled' %}bg-primary{% elif appt.status == 'Cancelled' %}bg-danger{% else %}bg-success{% endif %}">
                                         {{ appt.status }}
                                     </span>
-                                </td>
-                                <td class="text-end pe-4">
-                                    {% if appt.status == 'Scheduled' %}
-                                    <div class="btn-group">
-                                        <a href="{% url 'reschedule_appointment' appt.id %}" class="btn btn-sm btn-outline-secondary" title="Reschedule"><i class="bi bi-calendar-event"></i></a>
-                                        <a href="{% url 'cancel_appointment' appointment.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Are you absolutely sure you want to cancel this appointment? This cannot be undone.');">
-    Cancel
-</a>
-                                    </div>
-                                    {% else %}
-                                    <span class="text-muted small">No actions available</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center py-5 text-muted">
-                                    <i class="bi bi-calendar-x fs-1 d-block mb-3 text-secondary opacity-50"></i>
-                                    <h5>No appointments found.</h5>
-                                    <p class="mb-0">Click the green button above to schedule your first visit.</p>
-                                </td>
-                            </tr>
-                            {% endfor %}
+                            </td>
+                            <td class="text-end pe-4">
+                                {% if appt.status == 'Scheduled' %}
+                                <div class="btn-group">
+                                    <a href="{% url 'reschedule_appointment' appt.id %}" class="btn btn-sm btn-outline-secondary" title="Reschedule"><i class="bi bi-calendar-event"></i></a>
+                                    <a href="{% url 'cancel_appointment' appt.id %}" class="btn btn-sm btn-danger" onclick="return confirm('Are you absolutely sure you want to cancel this appointment? This cannot be undone.');">
+                                        Cancel
+                                    </a>
+                                </div>
+                                {% else %}
+                                <span class="text-muted small">No actions available</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-calendar-x fs-1 d-block mb-3 text-secondary opacity-50"></i>
+                                <h5>No appointments found.</h5>
+                                <p class="mb-0">Click the green button above to schedule your first visit.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
                         </tbody>
                     </table>
                 </div>

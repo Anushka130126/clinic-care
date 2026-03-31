@@ -17,33 +17,24 @@ from django.contrib import messages
 
 @login_required
 def login_success_router(request):
-    """Bulletproof router to safely navigate users and prevent redirect loops"""
+    """Bulletproof router using safe hasattr checks to prevent crashes"""
     user = request.user
 
-    # 1. Admin/Staff -> Send to Custom Analytics Dashboard (NOT the vault!)
+    # 1. Admin/Staff -> Analytics Dashboard
     if user.is_superuser or user.is_staff:
         return redirect('clinic_reports')
 
-    # 2. Safe Doctor Check
-    try:
-        # We explicitly try to access the doctor profile
-        if user.doctor:
-            return redirect('doctor_dashboard')
-    except ObjectDoesNotExist:
-        pass  # If they aren't a doctor, safely ignore and move on
+    # 2. Doctor -> Doctor Dashboard
+    if hasattr(user, 'doctor'):
+        return redirect('doctor_dashboard')
 
-    # 3. Safe Patient Check
-    try:
-        if user.patient:
-            return redirect('patient_dashboard')
-    except ObjectDoesNotExist:
-        pass
+    # 3. Patient -> Patient Dashboard
+    if hasattr(user, 'patient'):
+        return redirect('patient_dashboard')
 
-    # 4. The Loop Breaker (If they reach here, something is wrong with their account)
-    # They are logged in, but the database didn't link them to a Doctor OR Patient profile.
-    # We MUST log them out and show an error, otherwise the server goes into an infinite loop!
+    # 4. The Loop Breaker (Safely logs out orphaned accounts)
     logout(request)
-    messages.error(request, "System Error: Your account is not linked to a patient or doctor profile. Please contact the clinic.")
+    messages.error(request, "System Error: Your account is not linked to a patient or doctor profile.")
     return redirect('login')
 
 def register_patient(request):
