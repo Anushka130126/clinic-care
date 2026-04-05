@@ -81,32 +81,47 @@ def doctor_dashboard(request):
         'upcoming': upcoming_appointments,
         'today': today
     })
+from django.core.exceptions import ObjectDoesNotExist
+
 
 @login_required
 def cancel_appointment(request, appointment_id):
     """Allows either the Patient or the Doctor to cancel the appointment"""
     appointment = get_object_or_404(Appointment, id=appointment_id)
 
-    # Security Checks
+    # 1. Indestructible Security Check
     is_patient = (appointment.patient == request.user)
-    is_doctor = (hasattr(request.user, 'doctor') and appointment.doctor == request.user.doctor)
+    is_doctor = False
+
+    try:
+        if request.user.doctor == appointment.doctor:
+            is_doctor = True
+    except ObjectDoesNotExist:
+        pass
 
     if is_patient or is_doctor:
         appointment.status = 'Cancelled'
         appointment.save()
 
-        # Clear it from the live queue
-        if hasattr(appointment, 'token'):
-            appointment.token.is_served = True
-            appointment.token.save()
+        # 2. The 500 Error Fix: Safely clear it from the queue without hasattr()
+        try:
+            if appointment.token:
+                appointment.token.is_served = True
+                appointment.token.save()
+        except ObjectDoesNotExist:
+            pass # No token existed, completely fine. Just move on!
 
         messages.success(request, "Appointment successfully cancelled.")
     else:
         messages.error(request, "Security Exception: You do not have permission to modify this record.")
 
-    # Hardcoded, reliable routing instead of relying on browser history
-    if hasattr(request.user, 'doctor'):
-        return redirect('doctor_dashboard')
+    # 3. YOUR FAVORITE ROUTING: The perfect hardcoded redirect
+    try:
+        if request.user.doctor:
+            return redirect('doctor_dashboard')
+    except ObjectDoesNotExist:
+        pass
+
     return redirect('patient_dashboard')
 
 
