@@ -15,7 +15,7 @@ from .forms import UserUpdateForm, ProfileUpdateForm
 
 @login_required
 def login_success_router(request):
-    """Bulletproof router using safe hasattr checks to prevent crashes"""
+    """Bulletproof router that auto-heals orphaned accounts"""
     user = request.user
 
     # 1. Admin/Staff -> Analytics Dashboard
@@ -26,14 +26,10 @@ def login_success_router(request):
     if hasattr(user, 'doctor'):
         return redirect('doctor_dashboard')
 
-    # 3. Patient -> Patient Dashboard (Fixed naming to patientprofile)
-    if hasattr(user, 'patientprofile'):
-        return redirect('patient_dashboard')
-
-    # 4. The Loop Breaker (Safely logs out orphaned accounts)
-    logout(request)
-    messages.error(request, "System Error: Your account is not linked to a patient or doctor profile.")
-    return redirect('login')
+    # 3. Patient -> Auto-Heal and Redirect
+    # If a profile doesn't exist, this automatically builds one so they never get stuck!
+    PatientProfile.objects.get_or_create(user=user)
+    return redirect('patient_dashboard')
 
 def register_patient(request):
     if request.method == 'POST':
@@ -91,7 +87,7 @@ def cancel_appointment(request, appointment_id):
     """Allows either the Patient or the Doctor to cancel the appointment"""
     appointment = get_object_or_404(Appointment, id=appointment_id)
 
-    # Fixed Security Checks: Correctly comparing User models
+    # Security Checks
     is_patient = (appointment.patient == request.user)
     is_doctor = (hasattr(request.user, 'doctor') and appointment.doctor == request.user.doctor)
 
@@ -99,15 +95,20 @@ def cancel_appointment(request, appointment_id):
         appointment.status = 'Cancelled'
         appointment.save()
 
+        # Clear it from the live queue
         if hasattr(appointment, 'token'):
             appointment.token.is_served = True
             appointment.token.save()
 
         messages.success(request, "Appointment successfully cancelled.")
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
     else:
         messages.error(request, "Security Exception: You do not have permission to modify this record.")
-        return HttpResponseRedirect(request.META.get('HTTP_REFERER', '/'))
+
+    # Hardcoded, reliable routing instead of relying on browser history
+    if hasattr(request.user, 'doctor'):
+        return redirect('doctor_dashboard')
+    return redirect('patient_dashboard')
+
 
 @login_required
 def reschedule_appointment(request, appointment_id):
