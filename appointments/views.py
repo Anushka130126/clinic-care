@@ -18,7 +18,7 @@ from .forms import UserUpdateForm, ProfileUpdateForm
 from django.contrib.auth.views import LoginView
 from axes.models import AccessAttempt
 
-from .forms import PatientRegistrationForm, UserUpdateForm, ProfileUpdateForm # Added PatientRegistrationForm
+from .forms import PatientRegistrationForm, ProfileUpdateForm, DiagnosisForm
 from django.contrib.auth.models import User
 
 from .models import DiagnosisReport
