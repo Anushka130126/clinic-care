@@ -154,6 +154,28 @@ def reschedule_appointment(request, appointment_id):
         new_time = request.POST.get('appointment_time')
         new_date = datetime.strptime(new_date_str, '%Y-%m-%d').date()
 
+        # --- NEW: TIME TRAVEL PREVENTION ---
+        current_date = datetime.now().date()
+        current_time = datetime.now().time()
+
+        try:
+            new_time_obj = datetime.strptime(new_time, '%H:%M').time()
+        except ValueError:
+            new_time_obj = datetime.strptime(new_time, '%I:%M %p').time()
+
+        if new_date < current_date:
+            return render(request, 'appointments/reschedule.html', {
+                'appointment': appointment, 'time_slots': TIME_SLOTS,
+                'error': 'Invalid Request: You cannot reschedule to a past date.'
+            })
+
+        if new_date == current_date and new_time_obj < current_time:
+            return render(request, 'appointments/reschedule.html', {
+                'appointment': appointment, 'time_slots': TIME_SLOTS,
+                'error': 'Invalid Request: That time slot has already passed today.'
+            })
+        # -----------------------------------
+
         if Appointment.objects.filter(doctor=appointment.doctor, appointment_date=new_date, appointment_time=new_time, status='Scheduled').exclude(id=appointment.id).exists():
             return render(request, 'appointments/reschedule.html', {
                 'appointment': appointment, 'time_slots': TIME_SLOTS,
@@ -167,14 +189,9 @@ def reschedule_appointment(request, appointment_id):
         appointment.appointment_time = new_time
         appointment.save()
 
-        # Resort the queue for the day they left
         if old_date != new_date:
             recalculate_queue(old_doctor, old_date)
-
-        # Resort the queue for their new day
         recalculate_queue(appointment.doctor, new_date)
-
-        # Grab their new dynamic token
         new_token = appointment.token.token_number
 
         send_mock_notification(appointment.patient, "BOOKING_CONFIRMED", {
@@ -184,7 +201,6 @@ def reschedule_appointment(request, appointment_id):
         return redirect('doctor_dashboard' if is_doctor else 'patient_dashboard')
 
     return render(request, 'appointments/reschedule.html', {'appointment': appointment, 'time_slots': TIME_SLOTS})
-
 
 @login_required
 def book_appointment(request):
@@ -204,6 +220,29 @@ def book_appointment(request):
         doctor = Doctor.objects.get(id=doctor_id)
         appt_date = datetime.strptime(date_str, '%Y-%m-%d').date()
 
+        # --- NEW: TIME TRAVEL PREVENTION ---
+        current_date = datetime.now().date()
+        current_time = datetime.now().time()
+
+        # Safely convert the string time slot into a readable Python time object
+        try:
+            appt_time_obj = datetime.strptime(time_slot, '%H:%M').time()
+        except ValueError:
+            appt_time_obj = datetime.strptime(time_slot, '%I:%M %p').time()
+
+        if appt_date < current_date:
+            return render(request, 'appointments/book.html', {
+                'doctors': doctors, 'time_slots': TIME_SLOTS,
+                'error': 'Invalid Request: You cannot book an appointment in the past.'
+            })
+
+        if appt_date == current_date and appt_time_obj < current_time:
+            return render(request, 'appointments/book.html', {
+                'doctors': doctors, 'time_slots': TIME_SLOTS,
+                'error': 'Invalid Request: That time slot has already passed today.'
+            })
+        # -----------------------------------
+
         if Appointment.objects.filter(doctor=doctor, appointment_date=appt_date, appointment_time=time_slot, status='Scheduled').exists():
             return render(request, 'appointments/book.html', {
                 'doctors': doctors, 'time_slots': TIME_SLOTS,
@@ -215,10 +254,7 @@ def book_appointment(request):
             appointment_date=appt_date, appointment_time=time_slot
         )
 
-        # Trigger the Smart Sorter instead of guessing the token
         recalculate_queue(doctor, appt_date)
-
-        # Grab the freshly generated token
         new_token_num = appointment.token.token_number
 
         send_mock_notification(request.user, "BOOKING_CONFIRMED", {
@@ -228,7 +264,6 @@ def book_appointment(request):
         return render(request, 'appointments/success.html', {'token_number': new_token_num})
 
     return render(request, 'appointments/book.html', {'doctors': doctors, 'time_slots': TIME_SLOTS})
-
 
 @login_required
 def clinic_reports(request):
