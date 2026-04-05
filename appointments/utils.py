@@ -1,10 +1,32 @@
+import threading
 from django.core.mail import send_mail
 from django.conf import settings
 
-def send_mock_notification(user, action_type, details):
-    """Logs the notification to the terminal AND sends a live email via Gmail"""
+class EmailThread(threading.Thread):
+    """A background worker that sends the email without freezing the website"""
+    def __init__(self, subject, body, recipient_list):
+        self.subject = subject
+        self.body = body
+        self.recipient_list = recipient_list
+        threading.Thread.__init__(self)
 
-    # 1. Prepare the message content based on the action
+    def run(self):
+        try:
+            send_mail(
+                subject=self.subject,
+                message=self.body,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=self.recipient_list,
+                fail_silently=True, # Critical: Prevents crashes if email fails
+            )
+            print(">> Live email successfully sent in the background!")
+        except Exception as e:
+            print(f">> WARNING: Background email failed to send. Error: {e}")
+
+
+def send_mock_notification(user, action_type, details):
+    """Logs the notification and triggers the background email thread"""
+
     if action_type == "BOOKING_CONFIRMED":
         subject = f"Booking Confirmed: Token #{details['token']}"
         body = (f"Hello {user.username},\n\n"
@@ -26,26 +48,16 @@ def send_mock_notification(user, action_type, details):
     else:
         return
 
-    # 2. The Original Terminal Log (Your Debugger)
+    # 1. The Instant Terminal Log
     print("\n" + "="*50)
     print(f"MOCK SMS/EMAIL TO: {user.email}")
     print(f"SUBJECT: {subject}")
     print(f"BODY:\n{body}")
     print("="*50 + "\n")
 
-    # 3. The Live Gmail Trigger
+    # 2. Start the Background Email Thread
     if user.email:
-        try:
-            send_mail(
-                subject=subject,
-                message=body,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=False, # Set to False so we can see any errors in the terminal
-            )
-            print(">> Live email successfully sent via Gmail SMTP.")
-        except Exception as e:
-            print(f">> WARNING: Live email failed to send. Error: {e}")
+        EmailThread(subject, body, [user.email]).start()
 
 def recalculate_queue(doctor, target_date):
     """Indestructible Smart Sorter"""
