@@ -1,18 +1,27 @@
 from django import forms
 from django.contrib.auth.models import User
+from django.contrib.auth.forms import UserCreationForm
 from .models import PatientProfile
 
-class UserUpdateForm(forms.ModelForm):
-    email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
-    
-    class Meta:
-        model = User
-        fields = ['email']
+class PatientRegistrationForm(UserCreationForm):
+    """Custom form to force Email and Phone Number collection during signup"""
+    email = forms.EmailField(required=True, help_text="Required for mock email notifications.")
+    phone_number = forms.CharField(max_length=15, required=True, help_text="Required for mock SMS notifications.")
 
-class ProfileUpdateForm(forms.ModelForm):
-    phone_number = forms.CharField(required=True, widget=forms.TextInput(attrs={'class': 'form-control'}))
-    medical_history = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 3}))
-    
-    class Meta:
-        model = PatientProfile
-        fields = ['phone_number', 'medical_history']
+    class Meta(UserCreationForm.Meta):
+        model = User
+        fields = UserCreationForm.Meta.fields + ('email',)
+
+    def save(self, commit=True):
+        # 1. Save the User account with the email
+        user = super().save(commit=False)
+        user.email = self.cleaned_data['email']
+
+        if commit:
+            user.save()
+            # 2. Automatically generate the Profile with the phone number
+            PatientProfile.objects.create(
+                user=user,
+                phone_number=self.cleaned_data['phone_number']
+            )
+        return user

@@ -18,6 +18,9 @@ from .forms import UserUpdateForm, ProfileUpdateForm
 from django.contrib.auth.views import LoginView
 from axes.models import AccessAttempt
 
+from .forms import PatientRegistrationForm, UserUpdateForm, ProfileUpdateForm # Added PatientRegistrationForm
+from django.contrib.auth.models import User
+
 class CustomLoginView(LoginView):
     """Custom Login View to track and display remaining Axes login attempts"""
     template_name = 'registration/login.html' # Points to your existing login page
@@ -55,17 +58,16 @@ def login_success_router(request):
 
 def register_patient(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        # FIX: Use the new custom form
+        form = PatientRegistrationForm(request.POST)
         if form.is_valid():
             user = form.save()
-            PatientProfile.objects.create(user=user)
-            # FIX: Explicitly tell Django which backend to use so Axes doesn't crash!
+            # No need to manually create the profile here anymore, the form handles it safely!
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             return redirect('patient_dashboard')
     else:
-        form = UserCreationForm()
+        form = PatientRegistrationForm()
     return render(request, 'appointments/register.html', {'form': form})
-
 
 @login_required
 def patient_dashboard(request):

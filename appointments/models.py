@@ -44,3 +44,15 @@ class Token(models.Model):
     appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE)
     token_number = models.IntegerField()
     is_served = models.BooleanField(default=False)
+
+class DiagnosisReport(models.Model):
+    """The Final Boss: Doctor's Medical Report Card"""
+    appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE, related_name='diagnosis')
+    symptoms = models.TextField(help_text="Patient's reported symptoms")
+    diagnosis = models.TextField(help_text="Doctor's official diagnosis")
+    prescription = models.TextField(help_text="Prescribed medications and dosage", blank=True)
+    notes = models.TextField(help_text="Additional doctor notes", blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Report for {self.appointment.patient.username} by Dr. {self.appointment.doctor.name}"
