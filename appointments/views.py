@@ -342,3 +342,15 @@ def export_lifetime_logs(request):
 
     workbook.save(response)
     return response
+
+@login_required
+def all_time_logs(request):
+    """Displays the lifetime history of all appointments for Admins"""
+    # Security Check: Only Admins allowed
+    if not (request.user.is_staff or request.user.is_superuser):
+        return redirect('patient_dashboard')
+
+    # Fetch every appointment ever made, sorted by newest first
+    logs = Appointment.objects.all().order_by('-appointment_date', '-appointment_time')
+
+    return render(request, 'appointments/all_logs.html', {'logs': logs})
