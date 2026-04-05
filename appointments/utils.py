@@ -17,12 +17,13 @@ class EmailThread(threading.Thread):
                 message=self.body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=self.recipient_list,
-                fail_silently=False, # Critical: True value prevents crashes if email fails
+                fail_silently=False,
             )
-            print(">> Live email successfully sent in the background!")
+            # NEW: Added flush=True to force the log to appear
+            print(">> Live email successfully sent in the background!", flush=True)
         except Exception as e:
-            print(f">> WARNING: Background email failed to send. Error: {e}")
-
+            # NEW: Added flush=True to force the log to appear
+            print(f">> WARNING: Background email failed to send. Error: {e}", flush=True)
 
 def send_mock_notification(user, action_type, details):
     """Logs the notification and triggers the background email thread"""
