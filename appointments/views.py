@@ -13,6 +13,26 @@ from .models import Doctor, Appointment, Token, TIME_SLOTS, PatientProfile
 from .utils import send_mock_notification,recalculate_queue
 from .forms import UserUpdateForm, ProfileUpdateForm
 
+from django.contrib.auth.views import LoginView
+from axes.models import AccessAttempt
+
+class CustomLoginView(LoginView):
+    """Custom Login View to track and display remaining Axes login attempts"""
+    template_name = 'registration/login.html' # Points to your existing login page
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.method == 'POST':
+            username = self.request.POST.get('username')
+            if username:
+                attempt = AccessAttempt.objects.filter(username=username).first()
+                if attempt:
+                    remaining = 5 - attempt.failures_since_start
+                    if remaining > 0:
+                        context['axes_warning'] = f"Warning: Incorrect credentials. You have {remaining} attempts remaining before account lockout."
+        return context
+
+
 @login_required
 def login_success_router(request):
     """Bulletproof router that auto-heals orphaned accounts"""
@@ -37,11 +57,13 @@ def register_patient(request):
         if form.is_valid():
             user = form.save()
             PatientProfile.objects.create(user=user)
-            login(request, user)
+            # FIX: Explicitly tell Django which backend to use so Axes doesn't crash!
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             return redirect('patient_dashboard')
     else:
         form = UserCreationForm()
     return render(request, 'appointments/register.html', {'form': form})
+
 
 @login_required
 def patient_dashboard(request):
@@ -51,7 +73,8 @@ def patient_dashboard(request):
         return redirect('clinic_reports')
 
     profile, created = PatientProfile.objects.get_or_create(user=request.user)
-    appointments = Appointment.objects.filter(patient=request.user).order_by('-appointment_date')
+    # FIX: Removed the '-' so it sorts ascending chronologically
+    appointments = Appointment.objects.filter(patient=request.user).order_by('appointment_date', 'appointment_time')
     return render(request, 'appointments/patient_dashboard.html', {
         'profile': profile,
         'appointments': appointments
@@ -86,10 +109,8 @@ from django.core.exceptions import ObjectDoesNotExist
 
 @login_required
 def cancel_appointment(request, appointment_id):
-    """Allows either the Patient or the Doctor to cancel the appointment"""
     appointment = get_object_or_404(Appointment, id=appointment_id)
 
-    # Indestructible Security Check
     is_patient = (appointment.patient == request.user)
     is_doctor = False
 
@@ -103,23 +124,15 @@ def cancel_appointment(request, appointment_id):
         appointment.status = 'Cancelled'
         appointment.save()
 
-        # FIX: Completely obliterate the token so it leaves the queue forever
-        try:
-            if appointment.token:
-                appointment.token.delete()
-        except ObjectDoesNotExist:
-            pass
-
-        # Trigger the Smart Sorter to slide everyone else up in the line
+        # FIX: Let the Smart Sorter safely delete the token and shift the line!
         recalculate_queue(appointment.doctor, appointment.appointment_date)
 
         messages.success(request, "Appointment successfully cancelled.")
     else:
         messages.error(request, "Security Exception: You do not have permission to modify this record.")
 
-    # The perfect hardcoded redirect
     try:
-        if request.user.doctor:
+        if hasattr(request.user, 'doctor'):
             return redirect('doctor_dashboard')
     except ObjectDoesNotExist:
         pass

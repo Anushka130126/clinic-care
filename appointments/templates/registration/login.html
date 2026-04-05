@@ -13,6 +13,11 @@
         <form method="POST">
             {% csrf_token %}
             {{ form.as_p }}
+            {% if axes_warning %}
+            <div class="alert alert-danger fw-bold text-center mt-3 shadow-sm border-danger" role="alert">
+                <i class="bi bi-shield-exclamation me-2"></i> {{ axes_warning }}
+            </div>
+            {% endif %}
             <button type="submit" class="btn btn-primary w-100 mt-3">Log In</button>
         </form>
         
