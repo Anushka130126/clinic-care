@@ -10,7 +10,7 @@ from datetime import datetime, date
 import csv
 
 from .models import Doctor, Appointment, Token, TIME_SLOTS, PatientProfile
-from .utils import send_mock_notification
+from .utils import send_mock_notification,recalculate_queue
 from .forms import UserUpdateForm, ProfileUpdateForm
 
 @login_required
@@ -89,7 +89,7 @@ def cancel_appointment(request, appointment_id):
     """Allows either the Patient or the Doctor to cancel the appointment"""
     appointment = get_object_or_404(Appointment, id=appointment_id)
 
-    # 1. Indestructible Security Check
+    # Indestructible Security Check
     is_patient = (appointment.patient == request.user)
     is_doctor = False
 
@@ -103,19 +103,21 @@ def cancel_appointment(request, appointment_id):
         appointment.status = 'Cancelled'
         appointment.save()
 
-        # 2. The 500 Error Fix: Safely clear it from the queue without hasattr()
+        # FIX: Completely obliterate the token so it leaves the queue forever
         try:
             if appointment.token:
-                appointment.token.is_served = True
-                appointment.token.save()
+                appointment.token.delete()
         except ObjectDoesNotExist:
-            pass # No token existed, completely fine. Just move on!
+            pass
+
+        # Trigger the Smart Sorter to slide everyone else up in the line
+        recalculate_queue(appointment.doctor, appointment.appointment_date)
 
         messages.success(request, "Appointment successfully cancelled.")
     else:
         messages.error(request, "Security Exception: You do not have permission to modify this record.")
 
-    # 3. YOUR FAVORITE ROUTING: The perfect hardcoded redirect
+    # The perfect hardcoded redirect
     try:
         if request.user.doctor:
             return redirect('doctor_dashboard')
@@ -145,17 +147,31 @@ def reschedule_appointment(request, appointment_id):
                 'error': 'That time slot is already taken.'
             })
 
+        old_date = appointment.appointment_date
+        old_doctor = appointment.doctor
+
         appointment.appointment_date = new_date
         appointment.appointment_time = new_time
         appointment.save()
 
+        # Resort the queue for the day they left
+        if old_date != new_date:
+            recalculate_queue(old_doctor, old_date)
+
+        # Resort the queue for their new day
+        recalculate_queue(appointment.doctor, new_date)
+
+        # Grab their new dynamic token
+        new_token = appointment.token.token_number
+
         send_mock_notification(appointment.patient, "BOOKING_CONFIRMED", {
-            'doctor': appointment.doctor.name, 'date': new_date, 'time': new_time, 'token': appointment.token.token_number
+            'doctor': appointment.doctor.name, 'date': new_date, 'time': new_time, 'token': new_token
         })
 
         return redirect('doctor_dashboard' if is_doctor else 'patient_dashboard')
 
     return render(request, 'appointments/reschedule.html', {'appointment': appointment, 'time_slots': TIME_SLOTS})
+
 
 @login_required
 def book_appointment(request):
@@ -186,13 +202,11 @@ def book_appointment(request):
             appointment_date=appt_date, appointment_time=time_slot
         )
 
-        last_token = Token.objects.filter(
-            appointment__doctor=doctor,
-            appointment__appointment_date=appt_date
-        ).aggregate(Max('token_number'))['token_number__max']
+        # Trigger the Smart Sorter instead of guessing the token
+        recalculate_queue(doctor, appt_date)
 
-        new_token_num = (last_token or 0) + 1
-        Token.objects.create(appointment=appointment, token_number=new_token_num)
+        # Grab the freshly generated token
+        new_token_num = appointment.token.token_number
 
         send_mock_notification(request.user, "BOOKING_CONFIRMED", {
             'doctor': doctor.name, 'date': appt_date, 'time': time_slot, 'token': new_token_num
@@ -201,6 +215,7 @@ def book_appointment(request):
         return render(request, 'appointments/success.html', {'token_number': new_token_num})
 
     return render(request, 'appointments/book.html', {'doctors': doctors, 'time_slots': TIME_SLOTS})
+
 
 @login_required
 def clinic_reports(request):

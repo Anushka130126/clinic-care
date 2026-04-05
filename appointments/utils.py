@@ -28,3 +28,42 @@ def send_mock_notification(user, notification_type, context):
         
     print("="*55 + "\n")
     return True
+
+def recalculate_queue(doctor, target_date):
+    """
+    Mathematically perfect queue logic:
+    1. Destroys tokens belonging to Cancelled appointments.
+    2. Sorts all remaining Scheduled/Completed appointments strictly by Time.
+    3. Assigns them perfectly contiguous queue numbers (1, 2, 3...).
+    """
+    from .models import Appointment, Token # Imported here to avoid circular logic
+    from django.core.exceptions import ObjectDoesNotExist
+
+    # 1. Strip tokens from anyone who cancelled
+    Token.objects.filter(
+        appointment__doctor=doctor,
+        appointment__appointment_date=target_date,
+        appointment__status='Cancelled'
+    ).delete()
+
+    # 2. Fetch all remaining active appointments, perfectly sorted by Time
+    active_appts = Appointment.objects.filter(
+        doctor=doctor,
+        appointment_date=target_date
+    ).exclude(status='Cancelled').order_by('appointment_time')
+
+    # 3. Linearly assign contiguous queue numbers
+    counter = 1
+    for appt in active_appts:
+        try:
+            # If they already have a token, update its number if the queue shifted
+            token = Token.objects.get(appointment=appt)
+            if token.token_number != counter:
+                token.token_number = counter
+                token.save()
+        except ObjectDoesNotExist:
+            # If they are brand new, generate their token
+            Token.objects.create(appointment=appt, token_number=counter)
+        counter += 1
+
+
