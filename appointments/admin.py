@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Doctor, Appointment, Token
+from .models import DiagnosisReport
 
 @admin.register(Doctor)
 class DoctorAdmin(admin.ModelAdmin):
@@ -25,3 +26,5 @@ class TokenAdmin(admin.ModelAdmin):
     def get_date(self, obj):
         return obj.appointment.appointment_date
     get_date.short_description = 'Date'
+
+admin.site.register(DiagnosisReport)

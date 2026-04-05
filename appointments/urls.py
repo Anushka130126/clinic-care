@@ -26,4 +26,8 @@ urlpatterns = [
     path('register/', views.register_patient, name='register'),
     path('token/<int:token_id>/serve/', views.mark_served, name='mark_served'),
     path('nuke-legacy-data-88/', views.purge_legacy_data, name='purge_legacy_data'),
+
+    # Diagnosis Routing
+        path('appointment/<int:appt_id>/diagnose/', views.write_diagnosis, name='write_diagnosis'),
+        path('appointment/<int:appt_id>/report/', views.view_diagnosis, name='view_diagnosis'),
 ]

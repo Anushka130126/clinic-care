@@ -21,6 +21,9 @@ from axes.models import AccessAttempt
 from .forms import PatientRegistrationForm, UserUpdateForm, ProfileUpdateForm # Added PatientRegistrationForm
 from django.contrib.auth.models import User
 
+from .models import DiagnosisReport
+from .forms import DiagnosisForm
+
 class CustomLoginView(LoginView):
     """Custom Login View to track and display remaining Axes login attempts"""
     template_name = 'registration/login.html' # Points to your existing login page
@@ -383,3 +386,59 @@ def purge_legacy_data(request):
             <a href="/dashboard/">Go back to Dashboard</a>
         </div>
     """)
+
+
+
+@login_required
+def write_diagnosis(request, appt_id):
+    """Doctor creates or edits a diagnosis report"""
+    appointment = get_object_or_404(Appointment, id=appt_id)
+
+    # Security: Only the assigned doctor can write the report
+    if not hasattr(request.user, 'doctor') or appointment.doctor != request.user.doctor:
+        messages.error(request, "Unauthorized access.")
+        return redirect('doctor_dashboard')
+
+    # Fetch existing report if editing, or create a new one
+    try:
+        report = appointment.diagnosis
+    except ObjectDoesNotExist:
+        report = None
+
+    if request.method == 'POST':
+        form = DiagnosisForm(request.POST, instance=report)
+        if form.is_valid():
+            new_report = form.save(commit=False)
+            new_report.appointment = appointment
+            new_report.save()
+
+            # Automatically mark the appointment as completed!
+            appointment.status = 'Completed'
+            appointment.save()
+
+            messages.success(request, "Diagnosis Report saved successfully!")
+            return redirect('doctor_dashboard')
+    else:
+        form = DiagnosisForm(instance=report)
+
+    return render(request, 'appointments/write_diagnosis.html', {'form': form, 'appointment': appointment})
+
+@login_required
+def view_diagnosis(request, appt_id):
+    """Patient or Doctor views the final report card"""
+    appointment = get_object_or_404(Appointment, id=appt_id)
+
+    # Security: Only the specific patient or doctor can read it
+    is_patient = appointment.patient == request.user
+    is_doctor = hasattr(request.user, 'doctor') and appointment.doctor == request.user.doctor
+
+    if not (is_patient or is_doctor):
+        return redirect('patient_dashboard')
+
+    try:
+        report = appointment.diagnosis
+    except ObjectDoesNotExist:
+        messages.warning(request, "The doctor has not written a report for this appointment yet.")
+        return redirect('patient_dashboard' if is_patient else 'doctor_dashboard')
+
+    return render(request, 'appointments/view_diagnosis.html', {'report': report, 'appointment': appointment})

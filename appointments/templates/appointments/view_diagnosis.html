@@ -1,0 +1,69 @@
+{% extends 'appointments/base.html' %}
+
+{% block title %}Diagnosis Report{% endblock %}
+
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0" id="printable-report">
+                <div class="card-header bg-primary text-white p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0"><i class="bi bi-file-earmark-medical me-2"></i>Official Diagnosis</h3>
+                        <span class="fs-5">Dr. {{ appointment.doctor.name }}</span>
+                    </div>
+                </div>
+                <div class="card-body p-4 bg-light">
+                    <div class="row mb-4 border-bottom pb-3">
+                        <div class="col-sm-6">
+                            <p class="text-muted mb-1">Patient Name</p>
+                            <h5 class="fw-bold">{{ appointment.patient.username|title }}</h5>
+                        </div>
+                        <div class="col-sm-6 text-sm-end">
+                            <p class="text-muted mb-1">Appointment Date</p>
+                            <h5 class="fw-bold">{{ appointment.appointment_date }} at {{ appointment.appointment_time }}</h5>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="text-primary fw-bold border-bottom pb-2">Reported Symptoms</h6>
+                        <p class="fs-6">{{ report.symptoms|linebreaks }}</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="text-primary fw-bold border-bottom pb-2">Diagnosis</h6>
+                        <p class="fs-6">{{ report.diagnosis|linebreaks }}</p>
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="text-primary fw-bold border-bottom pb-2">Prescription</h6>
+                        <div class="p-3 bg-white border rounded">
+                            <p class="mb-0 font-monospace">{{ report.prescription|linebreaks }}</p>
+                        </div>
+                    </div>
+
+                    {% if report.notes %}
+                    <div class="mb-3">
+                        <h6 class="text-primary fw-bold border-bottom pb-2">Additional Notes</h6>
+                        <p class="text-muted fst-italic">{{ report.notes|linebreaks }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-white text-center p-3 text-muted small">
+                    Report generated on {{ report.created_at|date:"F d, Y" }}
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <button onclick="window.print()" class="btn btn-outline-primary shadow-sm">
+                    <i class="bi bi-printer me-2"></i>Print / Save as PDF
+                </button>
+                <a href="javascript:history.back()" class="btn btn-secondary shadow-sm">
+                    <i class="bi bi-arrow-left me-2"></i>Go Back
+                </a>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,23 +1,69 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Patient Registration</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light d-flex align-items-center justify-content-center vh-100">
-    <div class="container" style="max-width: 400px;">
-        <div class="card shadow-sm p-4">
-            <h3 class="text-center text-primary mb-4">Patient Sign Up</h3>
-            <form method="POST">
-                {% csrf_token %}
-                {{ form.as_p }} 
-                <button type="submit" class="btn btn-primary w-100 mt-3">Create Account</button>
-            </form>
-            <p class="text-center mt-3">
-                Already have an account? <a href="/accounts/login/">Login here</a>
-            </p>
+{% extends 'appointments/base.html' %}
+
+{% block title %}Register for Clinic Care{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5 mb-5">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 border-top border-primary border-4">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <i class="bi bi-person-plus-fill text-primary" style="font-size: 3rem;"></i>
+                    <h2 class="fw-bold mt-2">Patient Registration</h2>
+                    <p class="text-muted">Create an account to book your appointments.</p>
+                </div>
+
+                <form method="POST" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger shadow-sm border-danger">
+                        {{ form.non_field_errors|striptags }}
+                    </div>
+                    {% endif %}
+
+                    {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label fw-bold text-dark">{{ field.label }}</label>
+
+                        {{ field }}
+
+                        {% if field.help_text %}
+                        <div class="form-text text-muted small"><i class="bi bi-info-circle me-1"></i>{{ field.help_text }}</div>
+                        {% endif %}
+
+                        {% if field.errors %}
+                        <div class="text-danger small mt-1 fw-bold">
+                            {{ field.errors|striptags }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg shadow-sm"><i class="bi bi-check2-circle me-2"></i>Create Account</button>
+                    </div>
+                </form>
+
+                <div class="text-center mt-4 pt-3 border-top">
+                    <p class="text-muted mb-0">Already have an account? <a href="{% url 'login' %}" class="text-decoration-none fw-bold">Log in here</a>.</p>
+                </div>
+            </div>
         </div>
     </div>
-</body>
-</html>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        let inputs = document.querySelectorAll('input, select, textarea');
+        inputs.forEach(function(input) {
+            // Check if it's a checkbox, which needs a different Bootstrap class
+            if (input.type === 'checkbox') {
+                input.classList.add('form-check-input');
+            } else {
+                input.classList.add('form-control');
+            }
+        });
+    });
+</script>
+{% endblock %}

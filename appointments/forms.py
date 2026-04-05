@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from .models import PatientProfile
+from .models import DiagnosisReport
 
 # --- 1. Edit Profile Forms ---
 class UserUpdateForm(forms.ModelForm):
@@ -37,3 +38,16 @@ class PatientRegistrationForm(UserCreationForm):
                 phone_number=self.cleaned_data['phone_number']
             )
         return user
+
+
+class DiagnosisForm(forms.ModelForm):
+    """Form for doctors to write the medical report"""
+    class Meta:
+        model = DiagnosisReport
+        fields = ['symptoms', 'diagnosis', 'prescription', 'notes']
+        widgets = {
+            'symptoms': forms.Textarea(attrs={'rows': 3, 'placeholder': 'e.g., Fever, headache for 3 days...'}),
+            'diagnosis': forms.Textarea(attrs={'rows': 3, 'placeholder': 'e.g., Viral Pharyngitis...'}),
+            'prescription': forms.Textarea(attrs={'rows': 3, 'placeholder': 'e.g., Paracetamol 500mg twice a day...'}),
+            'notes': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Rest for 2 days, drink plenty of fluids.'}),
+        }
