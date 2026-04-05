@@ -1,23 +1,30 @@
-from datetime import datetime
-
-def send_mock_notification(user, message_type, details):
+def send_mock_notification(user, notification_type, context):
     """
-    Simulates sending an Email and SMS notification.
-    In a production environment, this would hook into Twilio or AWS SES.
+    University Requirement: Mock SMS/Email System.
+    Intercepts the booking and prints a live receipt to the server terminal.
     """
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    phone = user.patientprofile.phone_number if hasattr(user, 'patientprofile') else "No Phone"
-    email = user.email or "No Email"
+    print("\n" + "="*55)
+    print(" 🔔 CLINIC-CARE MOCK SMS/EMAIL DISPATCH SYSTEM 🔔")
+    print("="*55)
+    print(f"TO PATIENT: {user.username.title()}")
     
-    print("\n" + "="*50)
-    print(f"[{timestamp}] MOCK NOTIFICATION SYSTEM")
-    print("="*50)
+    # Safely grab the contact info
+    email = user.email if user.email else "No email provided"
+    phone = "No phone provided"
     
-    if message_type == "BOOKING_CONFIRMED":
-        print(f"EMAIL sent to {email}: Your appointment with {details['doctor']} is confirmed for {details['date']} at {details['time']}. Token: {details['token']}")
-        print(f"SMS sent to {phone}: Clinic appt confirmed for {details['date']}. Your token is {details['token']}.")
+    if hasattr(user, 'patientprofile') and user.patientprofile.phone_number:
+        phone = user.patientprofile.phone_number
         
-    elif message_type == "APPOINTMENT_CANCELLED":
-        print(f"EMAIL sent to {email}: Your appointment with {details['doctor']} on {details['date']} has been cancelled.")
+    print(f"ROUTING: [Email: {email}] | [SMS: {phone}]")
+    print("-" * 55)
+    
+    # Format the message based on the action
+    if notification_type == "BOOKING_CONFIRMED":
+        print(f"MESSAGE: Hello {user.username.title()}, your appointment")
+        print(f"with Dr. {context.get('doctor')} is officially confirmed.")
+        print(f"DATE & TIME: {context.get('date')} at {context.get('time')}")
+        print(f"YOUR LIVE QUEUE TOKEN IS: #{context.get('token')}")
+        print("Please arrive 10 minutes early to check in.")
         
-    print("="*50 + "\n")
+    print("="*55 + "\n")
+    return True
