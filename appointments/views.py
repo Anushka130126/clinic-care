@@ -7,7 +7,9 @@ from django.contrib.auth import login, logout
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib import messages
 from datetime import datetime, date
-import csv
+
+import openpyxl
+from django.http import HttpResponse
 
 from .models import Doctor, Appointment, Token, TIME_SLOTS, PatientProfile
 from .utils import send_mock_notification,recalculate_queue
@@ -112,33 +114,26 @@ def cancel_appointment(request, appointment_id):
     appointment = get_object_or_404(Appointment, id=appointment_id)
 
     is_patient = (appointment.patient == request.user)
-    is_doctor = False
-
-    try:
-        if request.user.doctor == appointment.doctor:
-            is_doctor = True
-    except ObjectDoesNotExist:
-        pass
+    is_doctor = hasattr(request.user, 'doctor') and appointment.doctor == request.user.doctor
 
     if is_patient or is_doctor:
         appointment.status = 'Cancelled'
         appointment.save()
 
-        # FIX: Let the Smart Sorter safely delete the token and shift the line!
+        # Safely delete the token to wipe it from the queue
+        if hasattr(appointment, 'token'):
+            appointment.token.delete()
+
+        # Trigger the newly fixed Smart Sorter
         recalculate_queue(appointment.doctor, appointment.appointment_date)
 
         messages.success(request, "Appointment successfully cancelled.")
     else:
-        messages.error(request, "Security Exception: You do not have permission to modify this record.")
+        messages.error(request, "Security Exception: Unauthorized.")
 
-    try:
-        if hasattr(request.user, 'doctor'):
-            return redirect('doctor_dashboard')
-    except ObjectDoesNotExist:
-        pass
-
+    if hasattr(request.user, 'doctor'):
+        return redirect('doctor_dashboard')
     return redirect('patient_dashboard')
-
 
 @login_required
 def reschedule_appointment(request, appointment_id):
@@ -296,60 +291,54 @@ def mark_served(request, token_id):
 
     return redirect('doctor_dashboard')
 
+
+
 @login_required
 def download_report(request):
+    """Generates a real .xlsx Excel report for the daily clinic stats"""
     if not (request.user.is_staff or request.user.is_superuser):
         return redirect('patient_dashboard')
 
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="Clinic_Report_{date.today()}.csv"'
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="Clinic_Report_{date.today()}.xlsx"'
 
-    writer = csv.writer(response)
-    writer.writerow(['Date', 'Time', 'Patient Name', 'Doctor', 'Token Number', 'Status'])
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = 'Daily Report'
+    sheet.append(['Date', 'Time', 'Patient Name', 'Doctor', 'Token Number', 'Status'])
 
     appointments = Appointment.objects.all().order_by('-appointment_date', 'appointment_time')
-
     for appt in appointments:
         token_num = appt.token.token_number if hasattr(appt, 'token') else "N/A"
-        writer.writerow([
-            appt.appointment_date,
-            appt.appointment_time,
-            appt.patient.username.title(),
-            f"Dr. {appt.doctor.name}",
-            token_num,
-            appt.status
+        sheet.append([
+            str(appt.appointment_date), str(appt.appointment_time),
+            appt.patient.username.title(), f"Dr. {appt.doctor.name}",
+            token_num, appt.status
         ])
 
+    workbook.save(response)
     return response
 
 @login_required
-def all_time_logs(request):
-    if not (request.user.is_staff or request.user.is_superuser):
-        return redirect('patient_dashboard')
-
-    logs = Appointment.objects.all().order_by('-appointment_date', '-appointment_time')
-    return render(request, 'appointments/all_logs.html', {'logs': logs})
-
-@login_required
 def export_lifetime_logs(request):
+    """Generates a real .xlsx Excel report of all lifetime appointments"""
     if not (request.user.is_staff or request.user.is_superuser):
         return redirect('patient_dashboard')
 
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="ClinicCare_Lifetime_Logs.csv"'
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="ClinicCare_Lifetime_Logs.xlsx"'
 
-    writer = csv.writer(response)
-    writer.writerow(['Date', 'Time', 'Patient Name', 'Doctor', 'Status'])
+    workbook = openpyxl.Workbook()
+    sheet = workbook.active
+    sheet.title = 'Lifetime Logs'
+    sheet.append(['Date', 'Time', 'Patient Name', 'Doctor', 'Status'])
 
     logs = Appointment.objects.all().order_by('-appointment_date', '-appointment_time')
-
     for log in logs:
-        writer.writerow([
-            log.appointment_date,
-            log.appointment_time,
-            log.patient.username,
-            log.doctor.name,
-            log.status
+        sheet.append([
+            str(log.appointment_date), str(log.appointment_time),
+            log.patient.username.title(), f"Dr. {log.doctor.name}", log.status
         ])
 
+    workbook.save(response)
     return response
