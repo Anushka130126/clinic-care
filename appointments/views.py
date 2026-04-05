@@ -450,16 +450,23 @@ def write_diagnosis(request, appt_id):
             new_report.appointment = appointment
             new_report.save()
 
-            # Automatically mark the appointment as completed!
+            # Automatically mark the appointment as completed
             appointment.status = 'Completed'
             appointment.save()
 
-            messages.success(request, "Diagnosis Report saved successfully!")
+            # --- NEW: Clear the Queue Token since this is now mandatory ---
+            if hasattr(appointment, 'token'):
+                appointment.token.is_served = True
+                appointment.token.save()
+            # --------------------------------------------------------------
+
+            messages.success(request, "Report saved and appointment marked as completed!")
             return redirect('doctor_dashboard')
     else:
         form = DiagnosisForm(instance=report)
 
     return render(request, 'appointments/write_diagnosis.html', {'form': form, 'appointment': appointment})
+
 
 @login_required
 def view_diagnosis(request, appt_id):
