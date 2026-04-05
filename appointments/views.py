@@ -13,7 +13,6 @@ from django.http import HttpResponse
 
 from .models import Doctor, Appointment, Token, TIME_SLOTS, PatientProfile
 from .utils import send_mock_notification,recalculate_queue
-from .forms import UserUpdateForm, ProfileUpdateForm
 
 from django.contrib.auth.views import LoginView
 from axes.models import AccessAttempt
