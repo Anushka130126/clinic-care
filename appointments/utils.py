@@ -17,7 +17,7 @@ class EmailThread(threading.Thread):
                 message=self.body,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=self.recipient_list,
-                fail_silently=True, # Critical: Prevents crashes if email fails
+                fail_silently=False, # Critical: True value prevents crashes if email fails
             )
             print(">> Live email successfully sent in the background!")
         except Exception as e:
