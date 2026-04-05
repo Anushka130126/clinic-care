@@ -354,3 +354,30 @@ def all_time_logs(request):
     logs = Appointment.objects.all().order_by('-appointment_date', '-appointment_time')
 
     return render(request, 'appointments/all_logs.html', {'logs': logs})
+
+
+
+@login_required
+def purge_legacy_data(request):
+    """Temporary Kill Switch to wipe bad data without Render Shell"""
+
+    # Ultimate Security Check: Only you (the Admin) can do this
+    if not request.user.is_superuser:
+        return HttpResponse("<h1>Security Violation: Unauthorized</h1>", status=403)
+
+    # 1. Vaporize all appointments and queue tokens
+    Appointment.objects.all().delete()
+    Token.objects.all().delete()
+
+    # 2. Vaporize all test patients (but strictly ignore Admins and Doctors)
+    User.objects.filter(is_superuser=False, is_staff=False, doctor__isnull=True).delete()
+    PatientProfile.objects.all().delete()
+
+    return HttpResponse("""
+        <div style="font-family: sans-serif; text-align: center; margin-top: 50px;">
+            <h1 style="color: green;">Wipe successful!</h1>
+            <p>Legacy patients, appointments, and tokens have been destroyed.</p>
+            <p>Your Doctors and Admins are completely safe.</p>
+            <a href="/dashboard/">Go back to Dashboard</a>
+        </div>
+    """)
