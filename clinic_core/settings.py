@@ -3,6 +3,8 @@ Django settings for clinic_core project.
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
 import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -118,3 +120,12 @@ AXES_LOCKOUT_PARAMETERS = ["username"]  # Locks the specific account, NOT the wh
 # Routing rules for successful logins and logouts
 LOGIN_REDIRECT_URL = 'login_router'
 LOGOUT_REDIRECT_URL = 'home'
+
+# --- EMAIL CONFIGURATION (GMAIL SMTP) ---
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.environ.get('EMAIL_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_PASS')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

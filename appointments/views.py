@@ -23,6 +23,7 @@ from django.contrib.auth.models import User
 from .models import DiagnosisReport
 from .forms import DiagnosisForm
 
+
 class CustomLoginView(LoginView):
     """Custom Login View to track and display remaining Axes login attempts"""
     template_name = 'registration/login.html' # Points to your existing login page
