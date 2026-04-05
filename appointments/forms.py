@@ -3,6 +3,18 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from .models import PatientProfile
 
+# --- 1. Edit Profile Forms ---
+class UserUpdateForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['username', 'email']
+
+class ProfileUpdateForm(forms.ModelForm):
+    class Meta:
+        model = PatientProfile
+        fields = ['phone_number', 'medical_history']
+
+# --- 2. New Registration Form ---
 class PatientRegistrationForm(UserCreationForm):
     """Custom form to force Email and Phone Number collection during signup"""
     email = forms.EmailField(required=True, help_text="Required for mock email notifications.")
