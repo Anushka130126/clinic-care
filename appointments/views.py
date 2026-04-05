@@ -268,21 +268,25 @@ def api_current_token(request, doctor_id):
 
 @login_required
 def edit_profile(request):
+    """Allows patient to securely update their medical history"""
+
+    # Security: Kick out doctors and admins
+    if hasattr(request.user, 'doctor') or request.user.is_staff:
+        return redirect('patient_dashboard')
+
     profile, created = PatientProfile.objects.get_or_create(user=request.user)
 
     if request.method == 'POST':
-        u_form = UserUpdateForm(request.POST, instance=request.user)
-        p_form = ProfileUpdateForm(request.POST, instance=profile)
-
-        if u_form.is_valid() and p_form.is_valid():
-            u_form.save()
-            p_form.save()
+        # Now we only have to process ONE form!
+        form = ProfileUpdateForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Medical history successfully updated!")
             return redirect('patient_dashboard')
     else:
-        u_form = UserUpdateForm(instance=request.user)
-        p_form = ProfileUpdateForm(instance=profile)
+        form = ProfileUpdateForm(instance=profile)
 
-    return render(request, 'appointments/edit_profile.html', {'u_form': u_form, 'p_form': p_form})
+    return render(request, 'appointments/edit_profile.html', {'form': form})
 
 @login_required
 def mark_served(request, token_id):

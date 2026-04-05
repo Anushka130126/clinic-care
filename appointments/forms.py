@@ -5,16 +5,22 @@ from .models import PatientProfile
 from .models import DiagnosisReport
 
 # --- 1. Edit Profile Forms ---
-class UserUpdateForm(forms.ModelForm):
-    class Meta:
-        model = User
-        fields = ['username', 'email']
+
 
 class ProfileUpdateForm(forms.ModelForm):
+    """Simplified form strictly for updating Medical History"""
     class Meta:
         model = PatientProfile
-        fields = ['phone_number', 'medical_history']
-
+        fields = ['medical_history']
+        labels = {
+            'medical_history': 'Personal Medical History'
+        }
+        widgets = {
+            'medical_history': forms.Textarea(attrs={
+                'rows': 6,
+                'placeholder': 'Enter any past surgeries, chronic illnesses, allergies, or ongoing medications here...'
+            })
+        }
 # --- 2. New Registration Form ---
 class PatientRegistrationForm(UserCreationForm):
     """Custom form to force Email and Phone Number collection during signup"""
